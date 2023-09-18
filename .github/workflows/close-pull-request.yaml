@@ -11,15 +11,22 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        ref: dev_branch
-    - name: Set Git config
+        ref: developer_branch
+        fetch-depth: 0
+    - name: Remove Updates from this PR
       run: |
-          git config --local user.email "dev@null"
-          git config --local user.name "CI Bot"
-    - name: Merge main back to dev
-      run: |
-          git fetch origin main:main
-          git checkout dev_branch
-          git merge main --no-edit --allow-unrelated-histories --strategy-option=theirs
-          git checkout --force main .
-          git push origin dev_branch
+        # Get Commits from this PR
+        TAG=PR_${{ github.event.pull_request.number }}
+        commits=$(git rev-list HEAD --grep=$TAG)
+        echo "commits: $commits"
+    
+        # Revert Commits or Log that no change was made
+        git config --local user.email "dev@null"
+        git config --local user.name "Conformitron Bot"
+    
+        for commit in $commits; do
+          echo $commit 
+          git revert $commit --no-edit || echo "Commit $commit not reverted" 
+        done
+        git push
+        
